@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Love % Calculator</title>
+<style>
+  :root{--bg:#0f1724;--card:#0b1220;--accent:#ff6b81;--muted:#9aa7bf}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:linear-gradient(180deg,#071427,#071a2b);color:#e6eef8;font-family:Inter, system-ui, Arial}
+  .wrap{max-width:760px;margin:44px auto;padding:20px}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:22px;border-radius:14px;box-shadow:0 10px 30px rgba(2,6,23,0.7)}
+  h1{margin:0 0 8px;font-size:22px}
+  p.lead{margin:0 0 16px;color:var(--muted)}
+  .row{display:flex;gap:12px;margin-bottom:12px}
+  input[type=text]{flex:1;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+  button{background:var(--accent);border:0;color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer}
+  .result{margin-top:16px;padding:14px;border-radius:12px;background:linear-gradient(90deg,rgba(255,107,129,0.08),transparent);display:flex;align-items:center;gap:14px}
+  .meter{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.03);font-weight:700}
+  .msg{flex:1}
+  .small{font-size:13px;color:var(--muted)}
+  .controls{display:flex;gap:8px;margin-top:10px}
+  .adbox{margin-top:14px;padding:12px;border-radius:10px;border:1px dashed rgba(255,255,255,0.03);color:var(--muted);text-align:center}
+  footer{margin-top:14px;color:var(--muted);font-size:13px;text-align:center}
+  @media(max-width:600px){.row{flex-direction:column}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Love % Calculator 💖</h1>
+      <p class="lead">Type two names and see the love compatibility percentage. Fun & deterministic — share with friends!</p>
+
+      <div class="row">
+        <input id="nameA" type="text" placeholder="Your name (e.g. Rahul)" />
+        <input id="nameB" type="text" placeholder="Partner's name (e.g. Priya)" />
+      </div>
+
+      <div class="controls">
+        <button id="calcBtn">Calculate</button>
+        <button id="randomBtn">Try Random</button>
+        <button id="clearBtn">Clear</button>
+        <div style="flex:1"></div>
+        <button id="shareBtn">Copy Result</button>
+      </div>
+
+      <div id="result" class="result" style="display:none;">
+        <div class="meter" id="meter">0%</div>
+        <div class="msg">
+          <div id="headline" style="font-weight:700">No result yet</div>
+          <div id="sub" class="small">Enter names and press Calculate.</div>
+        </div>
+      </div>
+
+      <div class="adbox" id="adBox">
+        <!-- Ad placeholder: paste Adsterra/other ad script here after deploying -->
+        Ad placeholder — paste ad script here after deployment.
+      </div>
+
+    </div>
+    <footer>Made for fun. Not scientifically accurate ❤️</footer>
+  </div>
+
+<script>
+  // Simple deterministic love algorithm
+  // Steps:
+  // 1. Normalize names (letters only, lowercase)
+  // 2. Convert each char to code, sum them separately
+  // 3. Combine sums with prime multipliers and reduce to 0-100
+
+  function normalize(s){
+    return (s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  }
+
+  function nameScore(s){
+    s = normalize(s);
+    if(!s) return 0;
+    let score = 0;
+    for(let i=0;i<s.length;i++){
+      score += s.charCodeAt(i) * (i+1);
+    }
+    // mix a bit
+    score = (score * 7 + s.length*13) >>> 0;
+    return score;
+  }
+
+  function lovePercent(a,b){
+    const sa = nameScore(a);
+    const sb = nameScore(b);
+    // combine and map to 0-100
+    const combined = Math.abs(Math.floor((sa * 31 + sb * 37) % 101));
+    // small tweak to avoid 0 for non-empty names
+    if((normalize(a) || normalize(b)) && combined === 0) return 3 + ((sa+sb)%7);
+    return combined;
+  }
+
+  // messages by range
+  function messageFor(percent){
+    if(percent >= 95) return 'Soulmates — kya baat hai!';
+    if(percent >= 80) return 'Perfect match — bahut strong!';
+    if(percent >= 60) return 'Bahut accha connection.';
+    if(percent >= 40) return 'Thik-thak, kaam karna padega.';
+    if(percent >= 20) return 'Needs effort — communication zaruri.';
+    return 'Low compatibility — friends sabse accha hai.';
+  }
+
+  const nameA = document.getElementById('nameA');
+  const nameB = document.getElementById('nameB');
+  const calcBtn = document.getElementById('calcBtn');
+  const randomBtn = document.getElementById('randomBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const resultEl = document.getElementById('result');
+  const meter = document.getElementById('meter');
+  const headline = document.getElementById('headline');
+  const sub = document.getElementById('sub');
+  const shareBtn = document.getElementById('shareBtn');
+
+  function showResult(a,b,pc){
+    resultEl.style.display = 'flex';
+    // animate number
+    let start = 0;
+    const dur = 700;
+    const startTime = performance.now();
+    function tick(now){
+      const t = Math.min(1,(now-startTime)/dur);
+      const val = Math.floor(start + (pc - start) * t);
+      meter.textContent = val + '%';
+      if(t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+    headline.textContent = `${a.trim() || '---'} ❤ ${b.trim() || '---'} = ${pc}%`;
+    sub.textContent = messageFor(pc);
+    // store last result
+    try{ localStorage.setItem('love_last', JSON.stringify({a,b,pc,at:Date.now()})); }catch(e){}
+  }
+
+  calcBtn.onclick = ()=>{
+    const a = nameA.value;
+    const b = nameB.value;
+    if(!normalize(a) && !normalize(b)){
+      alert('Don\'t be shy — enter at least one name.');
+      return;
+    }
+    const pc = lovePercent(a,b);
+    showResult(a,b,pc);
+  }
+
+  randomBtn.onclick = ()=>{
+    const names = ['Aarav','Ananya','Rahul','Priya','Aryan','Sana','Karan','Isha','Rohan','Neha','Vikram','Simran'];
+    nameA.value = names[Math.floor(Math.random()*names.length)];
+    nameB.value = names[Math.floor(Math.random()*names.length)];
+    calcBtn.click();
+  }
+
+  clearBtn.onclick = ()=>{ nameA.value=''; nameB.value=''; resultEl.style.display='none'; }
+
+  shareBtn.onclick = ()=>{
+    const a = nameA.value||'--';
+    const b = nameB.value||'--';
+    const pcText = meter.textContent || '0%';
+    const text = `Love%: ${a} ❤ ${b} = ${pcText} — Try on this Love Calculator!`;
+    navigator.clipboard?.writeText(text).then(()=>{
+      alert('Result copied to clipboard — paste anywhere to share!');
+    }).catch(()=>{ prompt('Copy this result:', text); });
+  }
+
+  // restore last
+  (function(){
+    try{
+      const last = JSON.parse(localStorage.getItem('love_last'));
+      if(last){ nameA.value = last.a; nameB.value = last.b; showResult(last.a,last.b,last.pc); }
+    }catch(e){}
+  })();
+
+</script>
+</body>
+</html>
